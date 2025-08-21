@@ -1,175 +1,194 @@
-# Self-Claim-Link
+# Self-Claim Link
 
-A modern Next.js web application for digital product claiming system. Allows customers to claim and download digital products using Shopee order IDs with comprehensive admin management capabilities.
+A modern Next.js application for digital product delivery through order ID claiming. Customers can claim virtual products using order IDs, while administrators manage products and orders through a comprehensive dashboard.
 
 ## 🚀 Features
 
-### Customer Features
-- **Order ID Claiming**: Enter Shopee order ID to claim digital products
-- **Instant Downloads**: Get immediate access to download links after successful claim
-- **Multi-Product Support**: Single order can contain multiple digital products
-- **Claim Validation**: Automatic verification of order validity and expiration
-- **Modern UI**: Clean, responsive interface with real-time feedback
+### Customer Interface
+- **Simple Claiming Process**: Enter order ID to claim digital products
+- **Instant Download Links**: Automatic generation of secure download links
+- **Multi-Product Support**: Handle multiple products per order
+- **Expiration Management**: Time-limited access to prevent abuse
+- **One-Time Use Control**: Configurable claim restrictions
 
-### Admin Features
-- **Product Management**: Add, edit, and delete digital products with download links
-- **Order Management**: Create orders, assign products, set expiration dates
-- **Claim Tracking**: Monitor claim status, timestamps, and usage counts
-- **Flexible Settings**: Configure expiration periods and one-time use policies
-- **Secure Authentication**: Protected admin dashboard with JWT authentication
+### Admin Dashboard
+- **Product Management**: Create, edit, and delete digital products
+- **Order Management**: Generate orders with product assignments
+- **Flexible Configuration**: Set expiration dates and usage limits
+- **Secure Authentication**: JWT-based admin access
+- **Real-Time Status**: Track claim counts and order status
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15, React 18, TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: SQLite with sqlite3
-- **Authentication**: bcryptjs, JWT
+- **Frontend**: Next.js 15.4.6, React 18, TypeScript
+- **Styling**: Tailwind CSS with responsive design
+- **Backend**: Next.js API Routes
+- **Database**: SQLite with structured schema
+- **Authentication**: JWT tokens with bcrypt hashing
 - **Icons**: Lucide React
-- **Date Handling**: date-fns
 
 ## 📦 Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/johnyww/self-claim-link.git
+   git clone https://github.com/your-username/self-claim-link.git
    cd self-claim-link
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 
-3. **Start the development server**
+3. **Start development server**
    ```bash
    npm run dev
    ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:3000`
-
-## 🗄️ Database Schema
-
-The application automatically creates the following SQLite tables on first run:
-
-- **`products`**: Digital products with download links
-- **`orders`**: Order tracking with claim status and expiration
-- **`order_products`**: Junction table linking orders to products
-- **`admins`**: Admin user authentication
-- **`settings`**: System configuration
+4. **Access the application**
+   - Customer interface: `http://localhost:3000`
+   - Admin dashboard: `http://localhost:3000/admin`
 
 ## 🔧 Configuration
+
+### Environment Variables
+Create a `.env.local` file in the root directory:
+
+```env
+JWT_SECRET=your-super-secret-jwt-key-here
+NODE_ENV=development
+```
 
 ### Default Admin Account
 - **Username**: `admin`
 - **Password**: `password`
-- **Access**: Navigate to `/admin/login`
 
-### Default Settings
-- **Expiration Period**: 7 days
-- **One-time Use**: Enabled by default
+⚠️ **Important**: Change the default admin password in production!
 
-## 📁 Project Structure
+## 📊 Database Schema
+
+The application uses SQLite with the following tables:
+
+- **`products`**: Digital products with download links
+- **`orders`**: Order tracking with claim status and expiration
+- **`order_products`**: Many-to-many relationship between orders and products
+- **`admins`**: Admin user authentication
+- **`settings`**: System configuration
+
+## 🔐 API Endpoints
+
+### Public Endpoints
+- `POST /api/claim` - Claim products with order ID
+
+### Admin Endpoints (Requires Authentication)
+- `POST /api/auth/login` - Admin login
+- `GET /api/admin/me` - Get admin info
+- `GET|POST|PUT|DELETE /api/products` - Product management
+- `GET|POST|PUT|DELETE /api/orders` - Order management
+- `GET|PUT /api/settings` - System settings
+
+## 🎯 Usage
+
+### For Customers
+1. Visit the main page
+2. Enter your order ID in the input field
+3. Click "Claim Products"
+4. Download your products using the provided links
+
+### For Administrators
+1. Navigate to `/admin/login`
+2. Login with admin credentials
+3. Use the dashboard to:
+   - Create and manage digital products
+   - Generate orders with product assignments
+   - Configure system settings
+   - Monitor claim activity
+
+## 🏗️ Project Structure
 
 ```
 self-claim-link/
 ├── app/
 │   ├── admin/
 │   │   ├── login/
-│   │   │   └── page.tsx          # Admin login page
-│   │   └── page.tsx              # Admin dashboard (25KB+)
+│   │   └── page.tsx          # Admin dashboard
 │   ├── api/
+│   │   ├── admin/
 │   │   ├── auth/
-│   │   │   └── route.ts          # Authentication endpoint
 │   │   ├── claim/
-│   │   │   └── route.ts          # Core claiming logic
 │   │   ├── orders/
-│   │   │   └── route.ts          # Order management API
-│   │   └── products/
-│   │       └── route.ts          # Product management API
-│   ├── globals.css               # Global styles
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Main claiming interface
+│   │   ├── products/
+│   │   └── settings/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx              # Customer interface
 ├── lib/
-│   ├── database.ts               # SQLite database setup
-│   └── types.ts                  # TypeScript interfaces
-├── database.sqlite               # SQLite database file
+│   ├── database.ts           # Database configuration
+│   └── types.ts              # TypeScript interfaces
 ├── package.json
 └── README.md
 ```
 
-## 🚦 Usage
-
-### For Customers
-
-1. **Get Order ID**: Receive order ID after purchasing digital products
-2. **Visit Website**: Navigate to the main page
-3. **Enter Order ID**: Input your Shopee order ID
-4. **Claim Products**: Click "Claim Products" button
-5. **Download**: Access download links for your digital products
-
-### For Admins
-
-1. **Login**: Access `/admin/login` with admin credentials
-2. **Manage Products**: Add digital products with download links
-3. **Create Orders**: Generate order IDs and assign products
-4. **Monitor Claims**: Track claim status and usage statistics
-5. **Configure Settings**: Adjust expiration periods and usage policies
-
-## 🔐 Security Features
-
-- **Password Hashing**: bcryptjs for secure password storage
-- **JWT Authentication**: Secure admin session management
-- **Order Validation**: Prevents unauthorized claims
-- **Expiration Control**: Time-based access restrictions
-- **One-time Use**: Configurable claim limitations
-
-## 🎯 Business Logic
-
-### Claim Process
-1. **Order Lookup**: Verify order ID exists in database
-2. **Expiration Check**: Ensure order hasn't expired
-3. **Usage Validation**: Check one-time use restrictions
-4. **Product Retrieval**: Fetch associated digital products
-5. **Claim Recording**: Update claim status and count
-6. **Download Generation**: Provide secure download links
-
-### Order Management
-- **Flexible Expiration**: Set custom expiration dates per order
-- **Multi-Product Orders**: Associate multiple products with single order
-- **Claim Tracking**: Monitor usage patterns and statistics
-- **Status Management**: Track claimed/unclaimed/available states
-
 ## 🚀 Deployment
 
-### Production Build
+### Build for Production
 ```bash
 npm run build
 npm start
 ```
 
-### Environment Variables
-No environment variables required - uses SQLite for simplicity.
+### Environment Setup
+1. Set `NODE_ENV=production`
+2. Configure secure `JWT_SECRET`
+3. Set up proper database backup strategy
+4. Configure reverse proxy (nginx/Apache)
+5. Enable HTTPS in production
 
-## 📊 API Endpoints
+## 🔒 Security Considerations
 
-- **POST** `/api/claim` - Claim products with order ID
-- **GET/POST** `/api/products` - Manage digital products
-- **GET/POST** `/api/orders` - Manage orders
-- **POST** `/api/auth` - Admin authentication
+- Change default admin credentials
+- Use strong JWT secrets
+- Implement rate limiting for production
+- Regular database backups
+- HTTPS enforcement
+- Input validation and sanitization
+
+## 📝 Development
+
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+### Adding New Features
+1. Create API routes in `app/api/`
+2. Update database schema in `lib/database.ts`
+3. Add TypeScript interfaces in `lib/types.ts`
+4. Implement UI components in respective pages
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## 🆘 Support
 
-Built with ❤️ using Next.js and modern web technologies.
+If you encounter any issues or have questions:
+
+1. Check the [Issues](https://github.com/your-username/self-claim-link/issues) page
+2. Create a new issue with detailed information
+3. Include error messages and steps to reproduce
+
+## 🎉 Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
+- Icons by [Lucide](https://lucide.dev/)
