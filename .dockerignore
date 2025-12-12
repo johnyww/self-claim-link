@@ -1,0 +1,35 @@
+# Docker-specific ignores
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Build artifacts
+.next
+out
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env.local
+.env.development.local
+
+# Documentation
+README.md
+CLAUDE.md
+GEMINI.md
+
+# Other
+.DS_Store
+Thumbs.db
+database.sqlite
