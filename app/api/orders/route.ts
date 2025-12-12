@@ -1,206 +1,258 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database';
+import { verifyAdminToken } from '@/lib/auth';
 import { addDays } from 'date-fns';
+import { Order } from '@/lib/types';
 
-export async function GET() {
+// #region Helper Functions
+async function handleAdminAuth(request: NextRequest) {
+  const admin = await verifyAdminToken(request);
+  if (!admin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return admin;
+}
+
+function validateContentType(request: NextRequest) {
+  const contentType = request.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type must be application/json' }, { status: 415 });
+  }
+  return null;
+}
+
+function validateProductIds(product_ids: any) {
+  if (!Array.isArray(product_ids) || product_ids.length === 0) {
+    return 'At least one product is required';
+  }
+  for (const productId of product_ids) {
+    if (!Number.isInteger(productId) || productId < 1) {
+      return 'All product IDs must be positive integers';
+    }
+  }
+  return null;
+}
+
+function validateExpiration(expiration_days: any) {
+  if (expiration_days !== undefined && expiration_days !== null) {
+    const days = parseInt(expiration_days.toString(), 10);
+    if (!Number.isInteger(days) || days < 1 || days > 3650) {
+      return 'Expiration days must be between 1 and 3650';
+    }
+    return addDays(new Date(), days).toISOString();
+  }
+  return null;
+}
+
+async function getOrderWithProducts(db: any, orderId: number) {
+  const order = await db.get(`
+    SELECT o.*,
+           GROUP_CONCAT(p.name ORDER BY p.id) as product_names,
+           GROUP_CONCAT(p.id ORDER BY p.id) as product_ids
+    FROM orders o
+    LEFT JOIN order_products op ON o.id = op.order_id
+    LEFT JOIN products p ON op.product_id = p.id
+    WHERE o.id = ?
+    GROUP BY o.id
+  `, [orderId]);
+
+  if (order) {
+    return {
+      ...order,
+      product_names: order.product_names ? order.product_names.split(',') : [],
+      product_ids: order.product_ids ? order.product_ids.split(',').map(Number) : []
+    };
+  }
+  return null;
+}
+
+// #endregion
+
+
+
+export async function GET(request: NextRequest) {
   try {
+    const admin = await handleAdminAuth(request);
+    if (admin instanceof NextResponse) return admin;
+
     const db = await getDatabase();
-    const orders = await db.all(`
-      SELECT o.*, 
-             GROUP_CONCAT(p.name) as product_names,
-             GROUP_CONCAT(p.id) as product_ids
+    const orders: Order[] = await db.all(`
+      SELECT o.id, o.order_id, o.claim_status, o.claim_timestamp, o.claim_count, o.expiration_date, o.one_time_use, o.created_by, o.created_at,
+             GROUP_CONCAT(p.name ORDER BY p.id) as product_names
       FROM orders o
       LEFT JOIN order_products op ON o.id = op.order_id
       LEFT JOIN products p ON op.product_id = p.id
       GROUP BY o.id
       ORDER BY o.created_at DESC
     `);
-    
-    // Parse product names and IDs
-    const ordersWithProducts = orders.map(order => ({
+
+    const ordersWithProducts = orders.map((order) => ({
       ...order,
       product_names: order.product_names ? order.product_names.split(',') : [],
-      product_ids: order.product_ids ? order.product_ids.split(',').map(Number) : []
     }));
-    
+
     return NextResponse.json(ordersWithProducts);
   } catch (error) {
     console.error('Get orders error:', error);
-    // Return empty array if table doesn't exist yet
-    return NextResponse.json([]);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
+
 export async function POST(request: NextRequest) {
+  const db = await getDatabase();
   try {
+    const admin = await handleAdminAuth(request);
+    if (admin instanceof NextResponse) return admin;
+
+    const contentTypeError = validateContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const { order_id, product_ids, expiration_days, one_time_use, created_by } = await request.json();
-    
-    if (!order_id || !product_ids || product_ids.length === 0) {
-      return NextResponse.json({ error: 'Order ID and at least one product are required' }, { status: 400 });
+
+    if (!order_id || typeof order_id !== 'string' || order_id.trim().length === 0) {
+      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
     
-    const db = await getDatabase();
-    
-    // Check if order already exists
-    const existingOrder = await db.get('SELECT id FROM orders WHERE order_id = ?', [order_id]);
+    const productIdsError = validateProductIds(product_ids);
+    if (productIdsError) return NextResponse.json({ error: productIdsError }, { status: 400 });
+
+    const expirationDateOrError = validateExpiration(expiration_days);
+    if (typeof expirationDateOrError === 'string') return NextResponse.json({ error: expirationDateOrError }, { status: 400 });
+
+    await db.exec('BEGIN');
+
+    const existingOrder = await db.get('SELECT id FROM orders WHERE order_id = ?', [order_id.trim()]);
     if (existingOrder) {
-      return NextResponse.json({ error: 'Order ID already exists' }, { status: 400 });
+      await db.exec('ROLLBACK');
+      return NextResponse.json({ error: 'Order ID already exists' }, { status: 409 });
     }
-    
-    // Verify all products exist
+
     for (const productId of product_ids) {
       const product = await db.get('SELECT id FROM products WHERE id = ?', [productId]);
       if (!product) {
+        await db.exec('ROLLBACK');
         return NextResponse.json({ error: `Product with ID ${productId} not found` }, { status: 404 });
       }
     }
-    
-    // Calculate expiration date
-    const expirationDate = expiration_days 
-      ? addDays(new Date(), expiration_days).toISOString()
-      : null;
-    
-    // Create order
+
     const orderResult = await db.run(`
       INSERT INTO orders (order_id, expiration_date, one_time_use, created_by)
       VALUES (?, ?, ?, ?)
-    `, [order_id, expirationDate, one_time_use ?? true, created_by]);
-    
-    // Add products to order
+    `, [order_id.trim(), expirationDateOrError, one_time_use ?? true, created_by || admin.username]);
+
+    const newOrderId = orderResult.lastID;
     for (const productId of product_ids) {
-      await db.run(`
-        INSERT INTO order_products (order_id, product_id)
-        VALUES (?, ?)
-      `, [orderResult.lastID, productId]);
+      await db.run('INSERT INTO order_products (order_id, product_id) VALUES (?, ?)', [newOrderId, productId]);
     }
-    
-    // Get the created order with product details
-    const newOrder = await db.get(`
-      SELECT o.*, 
-             GROUP_CONCAT(p.name) as product_names,
-             GROUP_CONCAT(p.id) as product_ids
-      FROM orders o
-      LEFT JOIN order_products op ON o.id = op.order_id
-      LEFT JOIN products p ON op.product_id = p.id
-      WHERE o.id = ?
-      GROUP BY o.id
-    `, [orderResult.lastID]);
-    
-    return NextResponse.json({
-      ...newOrder,
-      product_names: newOrder.product_names ? newOrder.product_names.split(',') : [],
-      product_ids: newOrder.product_ids ? newOrder.product_ids.split(',').map(Number) : []
-    }, { status: 201 });
+
+    await db.exec('COMMIT');
+
+    const newOrder = await getOrderWithProducts(db, newOrderId);
+    return NextResponse.json(newOrder, { status: 201 });
+
   } catch (error) {
+    await db.exec('ROLLBACK').catch(() => {});
     console.error('Create order error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
-  try {
-    const { id, order_id, product_ids, expiration_days, one_time_use } = await request.json();
-    
-    console.log('PUT /api/orders - Received data:', { id, order_id, product_ids, expiration_days, one_time_use });
-    
-    if (!id || !order_id || !product_ids || product_ids.length === 0) {
-      return NextResponse.json({ error: 'ID, order ID and at least one product are required' }, { status: 400 });
-    }
-    
     const db = await getDatabase();
-    
-    // Check if order exists
-    const existingOrder = await db.get('SELECT id, one_time_use, claim_count FROM orders WHERE id = ?', [id]);
-    if (!existingOrder) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-    
-    console.log('PUT /api/orders - Existing order:', existingOrder);
-    
-    // Verify all products exist
-    for (const productId of product_ids) {
-      const product = await db.get('SELECT id FROM products WHERE id = ?', [productId]);
-      if (!product) {
-        return NextResponse.json({ error: `Product with ID ${productId} not found` }, { status: 404 });
+    try {
+      const admin = await handleAdminAuth(request);
+      if (admin instanceof NextResponse) return admin;
+  
+      const contentTypeError = validateContentType(request);
+      if (contentTypeError) return contentTypeError;
+  
+      const { id, order_id, product_ids, expiration_days, one_time_use } = await request.json();
+  
+      const orderId = parseInt(id, 10);
+      if (!orderId || !Number.isInteger(orderId)) {
+        return NextResponse.json({ error: 'Valid numeric order ID is required' }, { status: 400 });
       }
+  
+      if (!order_id || typeof order_id !== 'string' || order_id.trim().length === 0) {
+        return NextResponse.json({ error: 'Order ID string is required' }, { status: 400 });
+      }
+      
+      const productIdsError = validateProductIds(product_ids);
+      if (productIdsError) return NextResponse.json({ error: productIdsError }, { status: 400 });
+  
+      const expirationDateOrError = validateExpiration(expiration_days);
+      if (typeof expirationDateOrError === 'string') return NextResponse.json({ error: expirationDateOrError }, { status: 400 });
+  
+      await db.exec('BEGIN');
+  
+      const existingOrder = await db.get('SELECT one_time_use FROM orders WHERE id = ?', [orderId]);
+      if (!existingOrder) {
+        await db.exec('ROLLBACK');
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+  
+      for (const productId of product_ids) {
+        const product = await db.get('SELECT id FROM products WHERE id = ?', [productId]);
+        if (!product) {
+          await db.exec('ROLLBACK');
+          return NextResponse.json({ error: `Product with ID ${productId} not found` }, { status: 404 });
+        }
+      }
+      
+      await db.run(
+        'UPDATE orders SET order_id = ?, expiration_date = ?, one_time_use = ? WHERE id = ?',
+        [order_id.trim(), expirationDateOrError, one_time_use ?? true, orderId]
+      );
+  
+      await db.run('DELETE FROM order_products WHERE order_id = ?', [orderId]);
+      for (const productId of product_ids) {
+        await db.run('INSERT INTO order_products (order_id, product_id) VALUES (?, ?)', [orderId, productId]);
+      }
+  
+      await db.exec('COMMIT');
+  
+      const updatedOrder = await getOrderWithProducts(db, orderId);
+      return NextResponse.json(updatedOrder);
+  
+    } catch (error) {
+      await db.exec('ROLLBACK').catch(() => {});
+      console.error('Update order error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-    
-    // Calculate expiration date
-    const expirationDate = expiration_days 
-      ? addDays(new Date(), expiration_days).toISOString()
-      : null;
-    
-    // If changing from multi-use to one-time use, reset claim count to allow one more claim
-    let newClaimCount = existingOrder.claim_count;
-    if (!existingOrder.one_time_use && one_time_use) {
-      newClaimCount = 0;
-      console.log('PUT /api/orders - Resetting claim count from', existingOrder.claim_count, 'to 0');
-    }
-    
-    console.log('PUT /api/orders - Updating with:', { order_id, expirationDate, one_time_use, newClaimCount });
-    
-    // Update order
-    await db.run(`
-      UPDATE orders 
-      SET order_id = ?, expiration_date = ?, one_time_use = ?, claim_count = ?
-      WHERE id = ?
-    `, [order_id, expirationDate, one_time_use, newClaimCount, id]);
-    
-    // Remove existing products and add new ones
-    await db.run('DELETE FROM order_products WHERE order_id = ?', [id]);
-    
-    for (const productId of product_ids) {
-      await db.run(`
-        INSERT INTO order_products (order_id, product_id)
-        VALUES (?, ?)
-      `, [id, productId]);
-    }
-    
-    // Get the updated order with product details
-    const updatedOrder = await db.get(`
-      SELECT o.*, 
-             GROUP_CONCAT(p.name) as product_names,
-             GROUP_CONCAT(p.id) as product_ids
-      FROM orders o
-      LEFT JOIN order_products op ON o.id = op.order_id
-      LEFT JOIN products p ON op.product_id = p.id
-      WHERE o.id = ?
-      GROUP BY o.id
-    `, [id]);
-    
-    console.log('PUT /api/orders - Updated order:', updatedOrder);
-    
-    return NextResponse.json({
-      ...updatedOrder,
-      product_names: updatedOrder.product_names ? updatedOrder.product_names.split(',') : [],
-      product_ids: updatedOrder.product_ids ? updatedOrder.product_ids.split(',').map(Number) : []
-    });
-  } catch (error) {
-    console.error('Update order error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
 }
-
+  
 export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
-    }
-    
     const db = await getDatabase();
-    
-    // Delete order products first
-    await db.run('DELETE FROM order_products WHERE order_id = ?', [id]);
-    
-    // Delete order
-    await db.run('DELETE FROM orders WHERE id = ?', [id]);
-    
-    return NextResponse.json({ message: 'Order deleted successfully' });
-  } catch (error) {
-    console.error('Delete order error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+    try {
+      const admin = await handleAdminAuth(request);
+      if (admin instanceof NextResponse) return admin;
+  
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+      const orderId = parseInt(id || '', 10);
+  
+      if (!orderId || !Number.isInteger(orderId)) {
+        return NextResponse.json({ error: 'Valid numeric order ID is required' }, { status: 400 });
+      }
+  
+      await db.exec('BEGIN');
+  
+      const existingOrder = await db.get('SELECT id FROM orders WHERE id = ?', [orderId]);
+      if (!existingOrder) {
+        await db.exec('ROLLBACK');
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+  
+      await db.run('DELETE FROM orders WHERE id = ?', [orderId]);
+      
+      await db.exec('COMMIT');
+  
+      return NextResponse.json({ message: 'Order deleted successfully' });
+  
+    } catch (error) {
+      await db.exec('ROLLBACK').catch(() => {});
+      console.error('Delete order error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }

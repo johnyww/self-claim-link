@@ -18,6 +18,8 @@ export interface Order {
   created_by?: string;
   created_at: string;
   products?: Product[]; // Added for joined queries
+  product_names?: string;
+  product_ids?: string;
 }
 
 export interface OrderProduct {

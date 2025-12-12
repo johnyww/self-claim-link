@@ -20,15 +20,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
     
-    const token = jwt.sign(
-      { userId: admin.id, username: admin.username },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET is not defined in environment variables.');
+      }
+      const token = jwt.sign(
+        { userId: admin.id, username: admin.username },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
     
     return NextResponse.json({ token, username: admin.username });
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: process.env.NODE_ENV !== 'production' ? (error as Error).message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

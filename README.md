@@ -51,19 +51,38 @@ A modern Next.js application for digital product delivery through order ID claim
 
 ## 🔧 Configuration
 
-### Environment Variables
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root directory. **Do not commit this file to version control.**
 
 ```env
-JWT_SECRET=your-super-secret-jwt-key-here
-NODE_ENV=development
+# Required: A strong, unique secret for JWT token signing.
+# In production, GENERATE A RANDOM, LONG, AND COMPLEX KEY (e.g., using `openssl rand -base64 32`).
+# Example (Development): JWT_SECRET=super-dev-secret
+JWT_SECRET=your-super-secret-jwt-key-here 
+
+# Set to 'production' for production deployments.
+NODE_ENV=development 
 ```
 
 ### Default Admin Account
-- **Username**: `admin`
-- **Password**: `password`
+- **Development Only**: A default admin account (`username: admin`, `password: password`) is automatically created ONLY when `NODE_ENV` is NOT `production`. This is for convenience during development.
+- **Production Warning**: In a production environment, this default admin account is NOT created. You **MUST** manually create the first administrator account with strong, unique credentials. Refer to "Deployment" for production setup.
+- **NEVER use default credentials in production!**
 
-⚠️ **Important**: Change the default admin password in production!
+## 🏗️ Database Migrations
+
+To ensure robust schema management and facilitate easier updates, it is highly recommended to integrate a database migration tool. This helps in versioning your database schema and applying changes in a controlled manner across different environments.
+
+**Recommended Tools:**
+- **Knex.js**: A popular SQL query builder that includes migration capabilities.
+- **Prisma Migrate**: A declarative, type-safe database migration system.
+
+**Getting Started:**
+1.  Install your chosen migration tool (e.g., `npm install knex` or `npm install prisma --save-dev` and `npm install @prisma/cli --save-dev`).
+2.  Configure the tool to connect to your `database.sqlite` file.
+3.  Create initial migration files to define your current schema (`products`, `orders`, `order_products`, `settings`, `admins`).
+4.  Run migrations using the tool's command-line interface to set up the database schema.
+
+This practice will significantly improve maintainability and reduce potential conflicts during development and deployment.
 
 ## 📊 Database Schema
 
@@ -151,7 +170,8 @@ npm start
 - Implement rate limiting for production
 - Regular database backups
 - HTTPS enforcement
-- Input validation and sanitization
+- Input validation and sanitization (all API routes)
+- Explicit CORS configuration for production environments (if client and server are on different domains)
 
 ## 📝 Development
 

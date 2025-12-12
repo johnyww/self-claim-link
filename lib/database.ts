@@ -13,6 +13,9 @@ export async function getDatabase() {
     driver: sqlite3.Database
   });
 
+  // Enable foreign key support
+  await db.exec('PRAGMA foreign_keys = ON;');
+
   // Create tables if they don't exist
   await db.exec(`
     CREATE TABLE IF NOT EXISTS products (
@@ -41,8 +44,8 @@ export async function getDatabase() {
       order_id INTEGER NOT NULL,
       product_id INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (order_id) REFERENCES orders (id),
-      FOREIGN KEY (product_id) REFERENCES products (id)
+      FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS settings (
@@ -66,16 +69,6 @@ export async function getDatabase() {
     ('default_expiration_days', '7'),
     ('one_time_use_enabled', 'true')
   `);
-
-  // Create default admin user if it doesn't exist
-  const adminExists = await db.get('SELECT id FROM admins WHERE username = ?', ['admin']);
-  if (!adminExists) {
-    const passwordHash = await bcrypt.hash('password', 10);
-    await db.run(`
-      INSERT INTO admins (username, password_hash)
-      VALUES (?, ?)
-    `, ['admin', passwordHash]);
-  }
 
   return db;
 }
