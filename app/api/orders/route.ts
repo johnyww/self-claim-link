@@ -3,6 +3,7 @@ import { getDatabase } from '@/lib/database';
 import { verifyAdminToken } from '@/lib/auth';
 import { addDays } from 'date-fns';
 import { Order } from '@/lib/types';
+import { Database } from 'sqlite';
 
 // #region Helper Functions
 async function handleAdminAuth(request: NextRequest) {
@@ -21,7 +22,7 @@ function validateContentType(request: NextRequest) {
   return null;
 }
 
-function validateProductIds(product_ids: any) {
+function validateProductIds(product_ids: number[]) {
   if (!Array.isArray(product_ids) || product_ids.length === 0) {
     return 'At least one product is required';
   }
@@ -33,7 +34,7 @@ function validateProductIds(product_ids: any) {
   return null;
 }
 
-function validateExpiration(expiration_days: any) {
+function validateExpiration(expiration_days: unknown) {
   if (expiration_days !== undefined && expiration_days !== null) {
     const days = parseInt(expiration_days.toString(), 10);
     if (!Number.isInteger(days) || days < 1 || days > 3650) {
@@ -44,7 +45,7 @@ function validateExpiration(expiration_days: any) {
   return null;
 }
 
-async function getOrderWithProducts(db: any, orderId: number) {
+async function getOrderWithProducts(db: Database, orderId: number) {
   const order = await db.get(`
     SELECT o.*,
            GROUP_CONCAT(p.name ORDER BY p.id) as product_names,

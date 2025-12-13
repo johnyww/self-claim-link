@@ -1,9 +1,9 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
-import bcrypt from 'bcryptjs';
+import { Database } from 'sqlite';
 
-let db: any = null;
+let db: Database | null = null;
 
 export async function getDatabase() {
   if (db) return db;

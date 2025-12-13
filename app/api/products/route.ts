@@ -13,7 +13,7 @@ function isValidUrl(url: string): boolean {
 }
 
 // Helper function to validate product input
-function validateProductInput(data: any): { isValid: boolean; error?: string } {
+function validateProductInput(data: ProductInput): { isValid: boolean; error?: string } {
   if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
     return { isValid: false, error: 'Product name is required' };
   }

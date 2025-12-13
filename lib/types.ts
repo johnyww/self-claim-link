@@ -31,8 +31,8 @@ export interface OrderProduct {
 }
 
 export interface Settings {
-  default_expiration_days: number;
-  one_time_use_enabled: boolean;
+  default_expiration_days: string;
+  one_time_use_enabled: string;
   admin_username: string;
 }
 
@@ -42,4 +42,22 @@ export interface ClaimResponse {
   products?: Product[];
   download_links?: string[];
   claim_count?: number;
+}
+
+export interface Admin {
+  id: number;
+  username: string;
+  created_at: string;
+}
+
+export interface ProductInput {
+  name: string;
+  description?: string;
+  download_link: string;
+  image_url?: string;
+}
+
+export interface JwtAdminPayload {
+  userId: number;
+  // Add other properties if they exist in your JWT payload
 }

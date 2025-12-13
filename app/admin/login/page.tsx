@@ -11,7 +11,7 @@ export default function AdminLogin() {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

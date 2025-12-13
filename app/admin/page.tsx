@@ -8,8 +8,6 @@ import {
   Settings, 
   LogOut, 
   Plus, 
-  Eye,
-  Calendar,
   CheckCircle,
   XCircle,
   Edit,
@@ -19,6 +17,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Product, Order } from '@/lib/types';
+
+import Image from 'next/image';
 
 // Utility function to format dates as DD/MM/YYYY
 const formatDate = (dateString: string | null | undefined): string => {
@@ -187,8 +187,7 @@ export default function AdminDashboard() {
 
 function OrdersTab({ orders, products, onRefresh }: { orders: Order[], products: Product[], onRefresh: () => void }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [settings, setSettings] = useState<any>({});
+  const [settings, setSettings] = useState<Settings>({} as Settings);
   const [formData, setFormData] = useState({
     order_id: '',
     product_ids: [] as number[],
@@ -196,28 +195,27 @@ function OrdersTab({ orders, products, onRefresh }: { orders: Order[], products:
     one_time_use: true
   });
 
-  // Fetch settings when component mounts
+
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        const fetchedSettings = data.settings || {};
+        setSettings(fetchedSettings);
+        
+        // Update form defaults with current settings
+        setFormData(prev => ({
+          ...prev,
+          expiration_days: parseInt(fetchedSettings.default_expiration_days) || 7,
+          one_time_use: fetchedSettings.one_time_use_enabled === 'true'
+        }));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
     fetchSettings();
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      const data = await response.json();
-      const fetchedSettings = data.settings || {};
-      setSettings(fetchedSettings);
-      
-      // Update form defaults with current settings
-      setFormData(prev => ({
-        ...prev,
-        expiration_days: parseInt(fetchedSettings.default_expiration_days) || 7,
-        one_time_use: fetchedSettings.one_time_use_enabled === 'true'
-      }));
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    }
-  };
 
   const getDefaultFormData = () => ({
     order_id: '',
@@ -296,7 +294,7 @@ function OrdersTab({ orders, products, onRefresh }: { orders: Order[], products:
     setEditingOrder(order);
     setFormData({
       order_id: order.order_id,
-      product_ids: order.products ? order.products.map((p: any) => p.id) : [],
+      product_ids: order.products ? order.products.map((p: Product) => p.id) : [],
       expiration_days: order.expiration_date ? Math.ceil((new Date(order.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 7,
       one_time_use: Boolean(order.one_time_use) // Convert integer 0/1 to boolean
     });
@@ -452,7 +450,7 @@ function OrdersTab({ orders, products, onRefresh }: { orders: Order[], products:
                   {order.order_id}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {order.products ? order.products.map((p: any) => p.name).join(', ') : 'No products'}
+                  {order.products ? order.products.map((p: Product) => p.name).join(', ') : 'No products'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -692,9 +690,11 @@ function ProductsTab({ products, onRefresh }: { products: Product[], onRefresh: 
         {products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden">
             {product.image_url && (
-              <img 
+              <Image 
                 src={product.image_url} 
                 alt={product.name}
+                width={500} // Arbitrary width, CSS will control actual size
+                height={500} // Arbitrary height, CSS will control actual size
                 className="w-full h-48 object-cover"
               />
             )}
@@ -746,9 +746,9 @@ function ProductsTab({ products, onRefresh }: { products: Product[], onRefresh: 
 }
 
 function SettingsTab() {
-  const [settings, setSettings] = useState<any>({});
-  const [tempSettings, setTempSettings] = useState<any>({});
-  const [admins, setAdmins] = useState<any[]>([]);
+  const [settings, setSettings] = useState<Settings>({} as Settings);
+  const [tempSettings, setTempSettings] = useState<Settings>({} as Settings);
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -776,7 +776,7 @@ function SettingsTab() {
     }
   };
 
-  const handleTempSettingsChange = (newSettings: any) => {
+  const handleTempSettingsChange = (newSettings: Partial<Settings>) => {
     setTempSettings({ ...tempSettings, ...newSettings });
     setHasUnsavedChanges(true);
   };

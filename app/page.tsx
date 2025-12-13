@@ -27,7 +27,7 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
-    } catch (error) {
+    } catch (_error) {
       setResult({
         success: false,
         message: 'Network error. Please try again.',

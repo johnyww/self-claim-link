@@ -10,7 +10,7 @@ export async function GET() {
     const admins = await db.all('SELECT id, username, created_at FROM admins');
     
     // Convert settings array to object for easier access
-    const settingsObj = settings.reduce((acc: any, setting: any) => {
+    const settingsObj = settings.reduce((acc: Settings, setting: { key: string; value: string }) => {
       acc[setting.key] = setting.value;
       return acc;
     }, {});
@@ -93,9 +93,9 @@ export async function PUT(request: NextRequest) {
         if (authHeader && authHeader.startsWith('Bearer ')) {
           try {
             const token = authHeader.substring(7);
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtAdminPayload;
             isSelfDeletion = decoded.userId === deleteAdminId;
-          } catch (error) {
+          } catch (_error) {
             // Token verification failed, continue with deletion but assume not self-deletion
           }
         }
