@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      # Example environment variables (replace with your actual .env.example content)
+      # These will be set inside the container for local development
+      JWT_SECRET: your-super-secret-jwt-key-here # Use a development secret
+      NODE_ENV: development
+    # Use watch mode for local development to automatically restart on file changes
+    command: npm run dev
+    restart: unless-stopped

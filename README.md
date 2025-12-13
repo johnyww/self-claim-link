@@ -1,5 +1,9 @@
 # Self-Claim Link
 
+[![Build Status](https://github.com/your-username/self-claim-link/workflows/CI/badge.svg)](https://github.com/your-username/self-claim-link/actions?query=workflow%3ACI)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker Image](https://img.shields.io/badge/Docker%20Image-Ready-blue)](https://hub.docker.com/r/your-dockerhub-username/self-claim-link)
+
 A modern Next.js application for digital product delivery through order ID claiming. Customers can claim virtual products using order IDs, while administrators manage products and orders through a comprehensive dashboard.
 
 ## 🚀 Features
@@ -187,12 +191,55 @@ npm start
 3. Add TypeScript interfaces in `lib/types.ts`
 4. Implement UI components in respective pages
 
-## 📄 License
+## 🤝 Contributing
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started.
+
+## 📜 Changelog
+
+See the [CHANGELOG.md](CHANGELOG.md) for a history of changes.
 
 ## 🎉 Acknowledgments
 
 - Built with [Next.js](https://nextjs.org/)
 - Styled with [Tailwind CSS](https://tailwindcss.com/)
 - Icons by [Lucide](https://lucide.dev/)
+
+## 🏗️ Project Structure
+
+```
+self-claim-link/
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   └── feature_request.md
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/
+│       └── ci.yml
+├── app/
+│   ├── admin/
+│   │   ├── login/
+│   │   └── page.tsx          # Admin dashboard
+│   ├── api/
+│   │   ├── admin/
+│   │   ├── auth/
+│   │   ├── claim/
+│   │   ├── orders/
+│   │   ├── products/
+│   │   └── settings/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx              # Customer interface
+├── lib/
+│   ├── database.ts           # Database configuration
+│   └── types.ts              # TypeScript interfaces
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+├── CONTRIBUTING.md
+├── CHANGELOG.md
+├── LICENSE
+├── package.json
+└── README.md
+```
