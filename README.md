@@ -1,6 +1,6 @@
 # Self-Claim Link
 
-[![Build Status](https://github.com/johnyww/self-claim-link/workflows/CI/badge.svg)](https://github.com/your-username/self-claim-link/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/johnyww/self-claim-link/workflows/CI/badge.svg)](https://github.com/johnyww/self-claim-link/actions?query=workflow%3ACI)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Image](https://img.shields.io/badge/Docker%20Image-Ready-blue)](https://hub.docker.com/r/your-dockerhub-username/self-claim-link)
 
