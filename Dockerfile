@@ -15,9 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy all project files (excluding those in .dockerignore)
 COPY . .
-
-# Build the Next.js application
-# `npm run build` will generate optimized production build in .next
+RUN npm install
 RUN npm run build
 
 # Stage 2: Runner Stage - Run the Next.js application in production

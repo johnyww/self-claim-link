@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Package, 
   ShoppingCart, 
-  Settings, 
+  Settings as SettingsIcon, 
   LogOut, 
   Plus, 
   CheckCircle,
@@ -16,7 +16,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
-import { Product, Order } from '@/lib/types';
+import { Product, Order, Settings, Admin } from '@/lib/types';
 
 import Image from 'next/image';
 
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <Settings className="w-5 h-5 inline mr-2" />
+              <SettingsIcon className="w-5 h-5 inline mr-2" />
               Settings
             </button>
           </nav>
@@ -187,6 +187,7 @@ export default function AdminDashboard() {
 
 function OrdersTab({ orders, products, onRefresh }: { orders: Order[], products: Product[], onRefresh: () => void }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [settings, setSettings] = useState<Settings>({} as Settings);
   const [formData, setFormData] = useState({
     order_id: '',
@@ -776,7 +777,7 @@ function SettingsTab() {
     }
   };
 
-  const handleTempSettingsChange = (newSettings: Partial<Settings>) => {
+  const handleTempSettingsChange = (newSettings: { [key: string]: string }) => {
     setTempSettings({ ...tempSettings, ...newSettings });
     setHasUnsavedChanges(true);
   };

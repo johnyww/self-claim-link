@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Settings, JwtAdminPayload } from '@/lib/types';
 
 export async function GET() {
   try {

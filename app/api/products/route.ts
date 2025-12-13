@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database';
 import { verifyAdminToken } from '@/lib/auth';
+import { ProductInput } from '@/lib/types';
 
 // Helper function to validate URL format
 function isValidUrl(url: string): boolean {

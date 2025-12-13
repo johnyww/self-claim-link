@@ -34,6 +34,7 @@ export interface Settings {
   default_expiration_days: string;
   one_time_use_enabled: string;
   admin_username: string;
+  [key: string]: string; // Index signature to allow dynamic properties
 }
 
 export interface ClaimResponse {

@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     await db.exec('COMMIT');
 
-    const newOrder = await getOrderWithProducts(db, newOrderId);
+    const newOrder = await getOrderWithProducts(db, newOrderId!);
     return NextResponse.json(newOrder, { status: 201 });
 
   } catch (error) {
