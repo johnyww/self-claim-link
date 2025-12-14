@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm outdated:*)",
+      "Bash(npm audit:*)",
+      "Bash(ls:*)",
+      "Bash(sqlite3:*)"
+    ]
+  }
+}
